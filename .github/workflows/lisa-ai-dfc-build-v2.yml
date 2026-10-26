@@ -21,8 +21,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find .transfer -maxdepth 1 -name 'lisa-source-*.b64' | wc -l)" = "6"
-          cat .transfer/lisa-source-{0..5}.b64 | tr -d '\n\r \t' | base64 --decode > LisaAIDFC-source.zip
+          test "$(find .transfer -maxdepth 1 -name 'lisa-source-*.b64' | wc -l)" = "4"
+          cat .transfer/lisa-source-{0..3}.b64 | tr -d '\n\r \t' | base64 --decode > LisaAIDFC-source.zip
 
       - name: Verify complete source archive
         shell: bash
