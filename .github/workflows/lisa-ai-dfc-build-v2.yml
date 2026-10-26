@@ -4,7 +4,7 @@ on:
   push:
     branches: [build-lisa-ai-dfc]
     paths:
-      - "LisaAIDFC-source.zip"
+      - ".transfer/lisa-source-*.b64"
   workflow_dispatch:
 
 permissions:
@@ -16,6 +16,13 @@ jobs:
     steps:
       - name: Check out build branch
         uses: actions/checkout@v4
+
+      - name: Reassemble source archive from transfer chunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find .transfer -maxdepth 1 -name 'lisa-source-*.b64' | wc -l)" = "6"
+          cat .transfer/lisa-source-{0..5}.b64 | tr -d '\n\r \t' | base64 --decode > LisaAIDFC-source.zip
 
       - name: Verify complete source archive
         shell: bash
