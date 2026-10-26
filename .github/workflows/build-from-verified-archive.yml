@@ -1,0 +1,79 @@
+name: Build Lisa AI DFC from verified source archive
+
+on:
+  push:
+    branches: [build-lisa-ai-dfc]
+    paths:
+      - "LisaAIDFC-source.zip"
+      - ".github/workflows/build-from-verified-archive.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: build-lisa-ai-dfc
+
+      - name: Verify original archive before extraction
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f LisaAIDFC-source.zip
+          test "$(stat -c %s LisaAIDFC-source.zip)" = "16922"
+          echo "94c270984fd7b6f7662f3b5a3e6a13c6e202c33a2bae887e1a7ab9fa447daed7  LisaAIDFC-source.zip" | sha256sum --check -
+          unzip -t LisaAIDFC-source.zip
+
+      - name: Extract verified project
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -q LisaAIDFC-source.zip
+          test -f LisaAIDFC/app/build.gradle.kts
+          test -f LisaAIDFC/settings.gradle.kts
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Run unit tests and build debug APK
+        working-directory: LisaAIDFC
+        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug
+
+      - name: Verify APK and metadata
+        working-directory: LisaAIDFC
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          file "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee "$RUNNER_TEMP/apk-badging.txt"
+          grep -q "package: name='com.dfc.lisaai' versionCode='1' versionName='1.0.0'" "$RUNNER_TEMP/apk-badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+
+      - name: Upload installable debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: LisaAIDFC-debug-apk
+          path: LisaAIDFC/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
