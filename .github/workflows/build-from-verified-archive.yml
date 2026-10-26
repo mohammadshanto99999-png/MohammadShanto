@@ -5,7 +5,6 @@ on:
     branches: [build-lisa-ai-dfc]
     paths:
       - "LisaAIDFC-source.zip"
-      - ".github/workflows/build-from-verified-archive.yml"
   workflow_dispatch:
 
 permissions:
@@ -20,22 +19,23 @@ jobs:
         with:
           ref: build-lisa-ai-dfc
 
-      - name: Verify original archive before extraction
+      - name: Verify updated source archive
         shell: bash
         run: |
           set -euo pipefail
           test -f LisaAIDFC-source.zip
-          test "$(stat -c %s LisaAIDFC-source.zip)" = "16922"
-          echo "94c270984fd7b6f7662f3b5a3e6a13c6e202c33a2bae887e1a7ab9fa447daed7  LisaAIDFC-source.zip" | sha256sum --check -
+          test "$(stat -c %s LisaAIDFC-source.zip)" = "24148"
+          echo "68ebc121c2b25e6f80060497c7b6edc9a06dba2badc9c11cda1708f42f9b281c  LisaAIDFC-source.zip" | sha256sum --check -
           unzip -t LisaAIDFC-source.zip
 
-      - name: Extract verified project
+      - name: Extract project and CI workflow
         shell: bash
         run: |
           set -euo pipefail
           unzip -q LisaAIDFC-source.zip
           test -f LisaAIDFC/app/build.gradle.kts
           test -f LisaAIDFC/settings.gradle.kts
+          test -f .github/workflows/build-lisa-ai-dfc.yml
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
